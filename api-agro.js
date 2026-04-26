@@ -1,10 +1,29 @@
 let cache = null;
 let lastUpdate = 0;
+let requests = {};
 
 export default async function handler(req, res) {
+  // 🔐 CORS (permite só seu domínio)
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://fernandopinheiro1776605072508.2512222.meusitehostgator.com.br/",
+  );
+  // 🚦 RATE LIMIT (por IP)
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+  requests[ip] = (requests[ip] || 0) + 1;
+
+  if (requests[ip] > 100) {
+    return res.status(429).json({ erro: "Muitas requisições" });
+  }
+
+  setTimeout(() => {
+    requests[ip] = 0;
+  }, 60000);
+
   const now = Date.now();
 
-  // cache de 30 min
+  // ⚡ CACHE (30 min)
   if (cache && now - lastUpdate < 1800000) {
     return res.status(200).json(cache);
   }
@@ -18,10 +37,7 @@ const fontes = [
   ['boi','https://www.cepea.esalq.usp.br/br/indicador/boi-gordo.aspx'],
   ['leite','https://www.cepea.esalq.usp.br/br/indicador/leite.aspx'],
   ['acucar','https://www.cepea.esalq.usp.br/br/indicador/acucar.aspx'],
-  ['etanol','https://www.cepea.esalq.usp.br/br/indicador/etanol.aspx'],
-  ['arroz','https://www.cepea.esalq.usp.br/br/indicador/arroz.aspx'],
-  ['trigo','https://www.cepea.esalq.usp.br/br/indicador/trigo.aspx'],
-  ['algodao','https://www.cepea.esalq.usp.br/br/indicador/algodao.aspx']
+  ['etanol','https://www.cepea.esalq.usp.br/br/indicador/etanol.aspx']
 ];
 
 const resultados = await Promise.all(
@@ -44,17 +60,14 @@ res.status(500).json({ erro: "Erro ao buscar dados" });
   }
 }
 
-// SCRAPING ROBUSTO
+// 🔍 SCRAPING
 async function pegarDado(nome, url) {
   try {
     const response = await fetch(url);
     const html = await response.text();
 
     ```
-// pega preço
 const precoMatch = html.match(/R\\$\\s?[\\d.,]+/);
-
-// pega data
 const dataMatch = html.match(/\\d{2}\\/\\d{2}\\/\\d{4}/);
 
 return [
