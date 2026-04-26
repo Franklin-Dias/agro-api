@@ -5,34 +5,49 @@ let requests = {};
 const API_KEY = process.env.API_KEY;
 
 export default async function handler(req, res) {
-  // 🔐 CORS
+  // CORS
   res.setHeader(
     "Access-Control-Allow-Origin",
     "https://fernandopinheiro1776605072508.2512222.meusitehostgator.com.br",
   );
-  res.setHeader("Access-Control-Allow-Headers", "x-api-key");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key");
 
-  // 🔑 API KEY
+  // Segurança extra
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+
+  // Preflight
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
+  // API KEY
   if (req.headers["x-api-key"] !== API_KEY) {
     return res.status(401).json({ erro: "Não autorizado" });
   }
 
-  // 🚦 RATE LIMIT
+  // RATE LIMIT
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-  requests[ip] = (requests[ip] || 0) + 1;
+  if (!requests[ip]) {
+    requests[ip] = { count: 1, time: Date.now() };
+  } else {
+    requests[ip].count++;
+  }
 
-  if (requests[ip] > 100) {
+  if (requests[ip].count > 100 && Date.now() - requests[ip].time < 60000) {
     return res.status(429).json({ erro: "Muitas requisições" });
   }
 
-  setTimeout(() => {
-    requests[ip] = 0;
-  }, 60000);
+  if (Date.now() - requests[ip].time > 60000) {
+    requests[ip] = { count: 1, time: Date.now() };
+  }
 
   const now = Date.now();
 
-  // ⚡ CACHE
+  // CACHE
   if (cache && now - lastUpdate < 1800000) {
     return res.status(200).json(cache);
   }
@@ -59,17 +74,17 @@ cache = dados;
 lastUpdate = now;
 
 res.status(200).json(dados);
-;
+
   } catch (e) {
     
 if (cache) return res.status(200).json(cache);
 
 res.status(500).json({ erro: "Erro ao buscar dados" });
-;
+
   }
 }
 
-// 🔍 SCRAPING
+// SCRAPING
 async function pegarDado(nome, url) {
   try {
     const response = await fetch(url);
@@ -86,7 +101,7 @@ return [
     data: dataMatch ? dataMatch[0] : "Atualizado hoje"
   }
 ];
-;
+
   } catch (e) {
     return [
       nome,
