@@ -2,13 +2,22 @@ let cache = null;
 let lastUpdate = 0;
 let requests = {};
 
+const API_KEY = process.env.API_KEY;
+
 export default async function handler(req, res) {
-  // 🔐 CORS (permite só seu domínio)
+  // 🔐 CORS
   res.setHeader(
     "Access-Control-Allow-Origin",
-    "https://fernandopinheiro1776605072508.2512222.meusitehostgator.com.br/",
+    "https://fernandopinheiro1776605072508.2512222.meusitehostgator.com.br",
   );
-  // 🚦 RATE LIMIT (por IP)
+  res.setHeader("Access-Control-Allow-Headers", "x-api-key");
+
+  // 🔑 API KEY
+  if (req.headers["x-api-key"] !== API_KEY) {
+    return res.status(401).json({ erro: "Não autorizado" });
+  }
+
+  // 🚦 RATE LIMIT
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
   requests[ip] = (requests[ip] || 0) + 1;
@@ -23,13 +32,13 @@ export default async function handler(req, res) {
 
   const now = Date.now();
 
-  // ⚡ CACHE (30 min)
+  // ⚡ CACHE
   if (cache && now - lastUpdate < 1800000) {
     return res.status(200).json(cache);
   }
 
   try {
-    ```
+    
 const fontes = [
   ['soja','https://www.cepea.esalq.usp.br/br/indicador/soja.aspx'],
   ['milho','https://www.cepea.esalq.usp.br/br/indicador/milho.aspx'],
@@ -50,13 +59,13 @@ cache = dados;
 lastUpdate = now;
 
 res.status(200).json(dados);
-```;
+;
   } catch (e) {
-    ```
+    
 if (cache) return res.status(200).json(cache);
 
 res.status(500).json({ erro: "Erro ao buscar dados" });
-```;
+;
   }
 }
 
@@ -66,9 +75,9 @@ async function pegarDado(nome, url) {
     const response = await fetch(url);
     const html = await response.text();
 
-    ```
-const precoMatch = html.match(/R\\$\\s?[\\d.,]+/);
-const dataMatch = html.match(/\\d{2}\\/\\d{2}\\/\\d{4}/);
+    
+const precoMatch = html.match(/R\$\s?[\d.,]+/);
+const dataMatch = html.match(/\d{2}\/\d{2}\/\d{4}/);
 
 return [
   nome,
@@ -77,7 +86,7 @@ return [
     data: dataMatch ? dataMatch[0] : "Atualizado hoje"
   }
 ];
-```;
+;
   } catch (e) {
     return [
       nome,
