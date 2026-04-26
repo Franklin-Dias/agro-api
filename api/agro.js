@@ -16,8 +16,8 @@ return res.status(401).json({ erro: "Não autorizado" });
 const now = Date.now();
 
 // CACHE (30 min)
-if (cache && now - lastUpdate < 1800000) {
-return res.status(200).json(cache);
+if (cache && now - lastUpdate < 3600000) {
+  return res.status(200).json(cache);
 }
 
 try {
@@ -68,38 +68,53 @@ res.status(200).json({
 
 // 🔍 SCRAPING INTELIGENTE
 async function pegarDado(url) {
-
 try {
-
-
 const response = await fetch(url, {
-  headers: {
-    "User-Agent": "Mozilla/5.0",
-    "Accept": "text/html"
-  }
+headers: {
+"User-Agent": "Mozilla/5.0"
+}
 });
+
 
 const html = await response.text();
 
-// pega número com vírgula padrão BR
-const precoMatch = html.match(/(\d{1,3}(\.\d{3})*,\d{2})/);
+// tenta pegar valor mais específico
+const precoMatch = html.match(/R\$\s?\d{1,3}(\.\d{3})*,\d{2}/);
 const dataMatch = html.match(/\d{2}\/\d{2}\/\d{4}/);
 
+if (precoMatch) {
+  return {
+    preco: precoMatch[0],
+    data: dataMatch ? dataMatch[0] : "Hoje",
+    fonte: "CEPEA"
+  };
+}
+
+// fallback parcial (se não achou R$)
+const numeroMatch = html.match(/\d{1,3}(\.\d{3})*,\d{2}/);
+
+if (numeroMatch) {
+  return {
+    preco: `R$ ${numeroMatch[0]}`,
+    data: dataMatch ? dataMatch[0] : "Hoje",
+    fonte: "CEPEA"
+  };
+}
+
+// fallback final
 return {
-  preco: precoMatch ? `R$ ${precoMatch[0]}` : "Atualizando...",
-  data: dataMatch ? dataMatch[0] : "Hoje",
+  preco: "Indisponível",
+  data: "Hoje",
   fonte: "CEPEA"
 };
 
 
 } catch (e) {
-
 return {
-  preco: "Indisponível",
-  data: "-",
-  fonte: "Erro"
+preco: "Erro",
+data: "-",
+fonte: "Sistema"
 };
-
-
 }
 }
+
