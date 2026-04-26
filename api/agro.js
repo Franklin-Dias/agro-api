@@ -23,10 +23,10 @@ try {
 
 
 const ativos = {
-  soja: "ZS/USD",
-  milho: "ZC/USD",
-  cafe: "KC/USD",
-  acucar: "SB/USD"
+  soja: "ZS:CBOT",
+  milho: "ZC:CBOT",
+  cafe: "KC:ICE",
+  acucar: "SB:ICE",
 };
 
 const resultados = {};
